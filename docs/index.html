@@ -1,0 +1,147 @@
+<head>
+  <!-- Plotly.js -->
+  <script src="js/plotly-latest.min.js"></script>
+  <script src="js/jquery-3.3.1.min.js"></script>
+  <title>China DRP Viewer</title>
+</head>
+
+<body>
+
+  <div id="plot"></div>
+  <table style="width:100%;">
+      <tr style="width:100%;">
+          <td style="width:50%;">
+              <div id="tabl"></div>
+          </td>
+          <td style="width:50%;">
+              <div id="tabl2"></div>
+          </td>
+      </tr>
+  </table>
+
+  <script>
+
+    function sortOnKeys(dict) {
+
+      var sorted = [];
+      for(var key in dict) {
+          sorted[sorted.length] = key;
+      }
+      sorted.sort();
+
+      var tempDict = {};
+      for(var i = 0; i < sorted.length; i++) {
+          tempDict[sorted[i]] = dict[sorted[i]];
+      }
+
+      return tempDict;
+    }
+
+    plotObj = document.getElementById('plot');
+
+    Plotly.d3.json('data/new_output.json', function(err, fig) {
+        var domains = {
+            x: [],
+            y: [],
+            text: [],
+            name: 'Domain Count',
+            type: 'bar'
+        };
+        var ips = {
+            x: [],
+            y: [],
+            text: [],
+            name: 'IP Count',
+            type: 'bar'
+        };
+        var data = [domains, ips];
+        var totalDomains = 0;
+        var totalIPs = 0;
+        var data2 = [{
+            type: 'table',
+            header: {
+                values: [["IP"], ["Categories"]],
+                align: "center"
+            },
+            cells: {
+                values: []
+            }
+        }];
+        var data3 = [{
+            type: 'table',
+            header: {
+                values: [["Domain"], ["Category"]],
+                align: "center"
+            },
+            cells: {
+                values: []
+            }
+        }];
+        var seenIPS = {};
+        var seenDOMAINS = {};
+        var iplist = [];
+        var domainlist = [];
+        for (category in fig) {
+            data[0]["x"].push(category);
+            data[1]["x"].push(category);
+            data[0]["y"].push(fig[category].count_domains);
+            data[1]["y"].push(fig[category].count_IPs);
+            totalDomains += fig[category].count_domains;
+            totalIPs += fig[category].count_IPs;
+            for (ip in fig[category]["IPs"]) {
+                if (fig[category]["IPs"][ip] in seenIPS) {
+                    seenIPS[fig[category]["IPs"][ip]].push(category);
+                } else {
+                    seenIPS[fig[category]["IPs"][ip]] = [];
+                    seenIPS[fig[category]["IPs"][ip]].push(category);
+                }
+                if ($.inArray(fig[category]["IPs"][ip], iplist) == -1) {
+                    iplist.push(fig[category]["IPs"][ip]);
+                }
+            }
+
+            for (domain in fig[category]["domains"]) {
+                if (fig[category]["domains"][domain] in seenDOMAINS) {
+                    seenDOMAINS[fig[category]["domains"][domain]].push(category);
+                } else {
+                    seenDOMAINS[fig[category]["domains"][domain]] = [];
+                    seenDOMAINS[fig[category]["domains"][domain]].push(category);
+                }
+                if ($.inArray(fig[category]["domains"][domain], domainlist) == -1) {
+                    domainlist.push(fig[category]["domains"][domain]);
+                }
+            }
+        }
+        for (category in fig) {
+            data[0]["text"].push(String((fig[category].count_domains / totalDomains * 100).toFixed(2)) + "%");
+            data[1]["text"].push(String((fig[category].count_IPs / totalIPs * 100).toFixed(2)) + "%");
+        }
+        iplist.sort();
+        seenIPS = sortOnKeys(seenIPS);
+        data2[0]["cells"]["values"].push(iplist);
+        data2[0]["cells"]["values"].push([]);
+        for (ip in seenIPS) {
+            data2[0]["cells"]["values"][1].push(seenIPS[ip]);
+        }
+        data3[0]["cells"]["values"].push(domainlist);
+        data3[0]["cells"]["values"].push([]);
+        for (domain in seenDOMAINS) {
+            data3[0]["cells"]["values"][1].push(seenDOMAINS[domain]);
+        }
+        var layout = {
+            title: 'Distribution by Category',
+            barmode: 'group',
+            xaxis: {
+                title: 'Category'
+            },
+            yaxis: {
+                title: 'Count'
+            }
+        };
+        Plotly.newPlot(plotObj, data, layout);
+        Plotly.newPlot('tabl', data2);
+        Plotly.newPlot('tabl2', data3);
+    });
+  </script>
+
+</body>

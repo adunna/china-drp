@@ -1,147 +1,469 @@
 <head>
-  <!-- Plotly.js -->
-  <script src="js/plotly-latest.min.js"></script>
-  <script src="js/jquery-3.3.1.min.js"></script>
-  <title>China DRP Viewer</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="css/materialize.min.css" />
+    <title>China DRP Viewer</title>
 </head>
+
+<style>
+    nav ul a,
+    nav .brand-logo {
+        color: #fff;
+    }
+
+    .bb a {
+        font-weight: bold;
+        font-size: 1.4em;
+    }
+
+    nav ul li.active {
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    #advanced-viewer-selection p label span {
+        color: #000;
+        line-height: 1.4em;
+        height: 1em;
+    }
+</style>
 
 <body>
 
-  <div id="plot"></div>
-  <table style="width:100%;">
-      <tr style="width:100%;">
-          <td style="width:50%;">
-              <div id="tabl"></div>
-          </td>
-          <td style="width:50%;">
-              <div id="tabl2"></div>
-          </td>
-      </tr>
-  </table>
+    <nav role="navigation" style="background-image: linear-gradient(to right, #616161, #111);">
+        <div class="nav-wrapper container">
+            <a id="logo-container" href="#" class="brand-logo">ChinaDRP</a>
+            <ul class="right hide-on-med-and-down">
+                <li class="active bb"><a href="#">Viewer</a></li>
+            </ul>
 
-  <script>
+            <ul id="nav-mobile" class="sidenav">
+                <li class="active bb"><a href="#">Viewer</a></li>
+            </ul>
+            <a href="#" data-target="nav-mobile" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+        </div>
+    </nav>
 
-    function sortOnKeys(dict) {
+    <div class="container" style="width:95%;">
 
-      var sorted = [];
-      for(var key in dict) {
-          sorted[sorted.length] = key;
-      }
-      sorted.sort();
+    <table style="width:100%;">
+        <tr style="width:100%;">
+            <td style="width:170px;">
+                <div class="hoverable waves-effect waves-teal" style="padding: 10px;">
+                    <form class="center-align" id="advanced-viewer-selection">
+                    </form>
+                </div>
+            </td>
+            <td>
+                <div id="plot"></div>
+            </td>
+        </tr>
+    </table>
 
-      var tempDict = {};
-      for(var i = 0; i < sorted.length; i++) {
-          tempDict[sorted[i]] = dict[sorted[i]];
-      }
+    <hr />
 
-      return tempDict;
-    }
+    <div class="row" style="width:100%;">
+        <div class="col s12" style="width:95%;">
+            <ul class="tabs center-align" style="width:100%; height:100px;">
+                <li class="tab col s4" style="height:100px;"><a class="active" href="#overview" id="overviewtext">Overview</a></li>
+                <li class="tab col s4" style="height:100px;"><a href="#ipspecs" id="ipspectext">IP Specifics</a></li>
+                <li class="tab col s4" style="height:100px;"><a href="#domainspecs" id="domainspectext">Domain Specifics</a></li>
+            </ul>
+        </div>
+        <div id="overview" class="col s12">
+            <table style="width:100%;">
+                <tr style="width:100%;">
+                    <td style="width:50%;">
+                        <div id="tabl"></div>
+                    </td>
+                    <td style="width:50%;">
+                        <div id="tabl2"></div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div id="ipspecs" class="col s12">
+            <table style="width:100%;">
+                <tr style="width:100%;">
+                    <td style="width:50%;">
+                        <div id="tabl3"></div>
+                    </td>
+                    <td style="width:50%;">
+                        <div id="tabl4"></div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div id="domainspecs" class="col s12">
+            <table style="width:100%;">
+                <tr style="width:100%;">
+                    <td style="width:50%;">
+                        <div id="tabl5"></div>
+                    </td>
+                    <td style="width:50%;">
+                        <div id="tabl6"></div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
 
-    plotObj = document.getElementById('plot');
+    <script src="js/plotly-latest.min.js"></script>
+    <script src="js/jquery-3.3.1.min.js"></script>
+    <script src="js/materialize.min.js"></script>
 
-    Plotly.d3.json('data/new_output.json', function(err, fig) {
-        var domains = {
-            x: [],
-            y: [],
-            text: [],
-            name: 'Domain Count',
-            type: 'bar'
-        };
-        var ips = {
-            x: [],
-            y: [],
-            text: [],
-            name: 'IP Count',
-            type: 'bar'
-        };
-        var data = [domains, ips];
-        var totalDomains = 0;
-        var totalIPs = 0;
-        var data2 = [{
-            type: 'table',
-            header: {
-                values: [["IP"], ["Categories"]],
-                align: "center"
-            },
-            cells: {
-                values: []
+    <script>
+        var currentCategories = [];
+
+        function addCat(newV) {
+            currentCategories.push(newV);
+        }
+
+        function removeCat(newV) {
+            currentCategories.splice(currentCategories.indexOf(newV), 1);
+        }
+
+        function sortCat() {
+            currentCategories.sort();
+        }
+
+        function toggleCat(togV) {
+            if ($.inArray(togV, currentCategories) != -1) {
+                removeCat(togV);
+            } else {
+                addCat(togV);
             }
-        }];
-        var data3 = [{
-            type: 'table',
-            header: {
-                values: [["Domain"], ["Category"]],
-                align: "center"
-            },
-            cells: {
-                values: []
+            sortCat();
+        }
+
+        Plotly.d3.json('data/new_output.json', function(err, fig) {
+            var catList = [];
+            for (category in fig) {
+                catList.push(category);
+                addCat(category);
             }
-        }];
-        var seenIPS = {};
-        var seenDOMAINS = {};
-        var iplist = [];
-        var domainlist = [];
-        for (category in fig) {
-            data[0]["x"].push(category);
-            data[1]["x"].push(category);
-            data[0]["y"].push(fig[category].count_domains);
-            data[1]["y"].push(fig[category].count_IPs);
-            totalDomains += fig[category].count_domains;
-            totalIPs += fig[category].count_IPs;
-            for (ip in fig[category]["IPs"]) {
-                if (fig[category]["IPs"][ip] in seenIPS) {
-                    seenIPS[fig[category]["IPs"][ip]].push(category);
+            catList.forEach(function(category) {
+                var toAdd = "";
+                toAdd += '<p>';
+                toAdd += '<label>';
+                toAdd += '<input class="filled-in" type="checkbox" checked="checked" id="cat' + category + 'box" value=' + category + '>';
+                toAdd += '<span>Category ' + category + '</span>';
+                toAdd += '</label>';
+                toAdd += '</p>';
+                document.getElementById('advanced-viewer-selection').innerHTML += toAdd;
+            });
+        });
+
+        function sortOnKeys(dict) {
+
+            var sorted = [];
+            for (var key in dict) {
+                sorted[sorted.length] = key;
+            }
+            sorted.sort();
+
+            var tempDict = {};
+            for (var i = 0; i < sorted.length; i++) {
+                tempDict[sorted[i]] = dict[sorted[i]];
+            }
+
+            return tempDict;
+        }
+
+        function IPSpec(toip) {
+            Plotly.d3.json('data/new_output.json', function(err, fig) {
+                var tbdata = [{
+                    type: 'table',
+                    header: {
+                        values: [
+                            ["Category"]
+                        ],
+                        align: "center"
+                    },
+                    cells: {
+                        values: [[]]
+                    }
+                }];
+                var tbdata2 = [{
+                    type: 'table',
+                    header: {
+                        values: [
+                            ["Category"],
+                            ["Possible Domain"]
+                        ],
+                        align: "center"
+                    },
+                    cells: {
+                        values: [[],[]]
+                    }
+                }];
+                for (category in fig) {
+                    var useCat = 0;
+                    for (ip in fig[category]["IPs"]) {
+                        if (fig[category]["IPs"][ip] == toip && $.inArray(category, tbdata[0]["cells"]["values"][0]) == -1) {
+                            tbdata[0]["cells"]["values"][0].push(category);
+                            useCat = 1;
+                        }
+                    }
+                    if (useCat == 1) {
+                        for (domain in fig[category]["domains"]) {
+                            tbdata2[0]["cells"]["values"][0].push(category);
+                            tbdata2[0]["cells"]["values"][1].push(fig[category]["domains"][domain]);
+                        }
+                    }
+                }
+                $('.tabs').tabs('select', "ipspecs");
+                if (document.getElementById('tabl3').innerHTML == "") {
+                    Plotly.newPlot('tabl3', tbdata, {
+                        responsive: true
+                    });
+                    Plotly.newPlot('tabl4', tbdata2, {
+                        responsive: true
+                    });
                 } else {
-                    seenIPS[fig[category]["IPs"][ip]] = [];
-                    seenIPS[fig[category]["IPs"][ip]].push(category);
+                    Plotly.react('tabl3', tbdata);
+                    Plotly.react('tabl4', tbdata2);
                 }
-                if ($.inArray(fig[category]["IPs"][ip], iplist) == -1) {
-                    iplist.push(fig[category]["IPs"][ip]);
-                }
-            }
+                $("#tabl4 > .plot-container > .svg-container > .main-svg > .table > .table-control-view > .y-column > .column-block > .column-cells > .column-cell").off("click");
+                $("#tabl4 > .plot-container > .svg-container > .main-svg > .table > .table-control-view > .y-column > .column-block > .column-cells > .column-cell").click(function (e) {
+                    if(e.target.textContent.includes(".")) {
+                        DomainSpec(e.target.textContent);
+                    }
+                });
+            });
+            document.getElementById('ipspectext').innerHTML = "IP Specifics<br />(" + toip + ")";
+        }
 
-            for (domain in fig[category]["domains"]) {
-                if (fig[category]["domains"][domain] in seenDOMAINS) {
-                    seenDOMAINS[fig[category]["domains"][domain]].push(category);
+        function DomainSpec(todomain) {
+            Plotly.d3.json('data/new_output.json', function(err, fig) {
+                var tbdata = [{
+                    type: 'table',
+                    header: {
+                        values: [
+                            ["Category"]
+                        ],
+                        align: "center"
+                    },
+                    cells: {
+                        values: [[]]
+                    }
+                }];
+                var tbdata2 = [{
+                    type: 'table',
+                    header: {
+                        values: [
+                            ["Category"],
+                            ["Possible IP"]
+                        ],
+                        align: "center"
+                    },
+                    cells: {
+                        values: [[],[]]
+                    }
+                }];
+                for (category in fig) {
+                    var useCat = 0;
+                    for (domain in fig[category]["domains"]) {
+                        if (fig[category]["domains"][domain] == todomain && $.inArray(category, tbdata[0]["cells"]["values"][0]) == -1) {
+                            tbdata[0]["cells"]["values"][0].push(category);
+                            useCat = 1;
+                        }
+                    }
+                    if (useCat == 1) {
+                        for (ip in fig[category]["IPs"]) {
+                            tbdata2[0]["cells"]["values"][0].push(category);
+                            tbdata2[0]["cells"]["values"][1].push(fig[category]["IPs"][ip]);
+                        }
+                    }
+                }
+                $('.tabs').tabs('select', "domainspecs");
+                if (document.getElementById('tabl5').innerHTML == "") {
+                    Plotly.newPlot('tabl5', tbdata, {
+                        responsive: true
+                    });
+                    Plotly.newPlot('tabl6', tbdata2, {
+                        responsive: true
+                    });
                 } else {
-                    seenDOMAINS[fig[category]["domains"][domain]] = [];
-                    seenDOMAINS[fig[category]["domains"][domain]].push(category);
+                    Plotly.react('tabl5', tbdata);
+                    Plotly.react('tabl6', tbdata2);
                 }
-                if ($.inArray(fig[category]["domains"][domain], domainlist) == -1) {
-                    domainlist.push(fig[category]["domains"][domain]);
+                $("#tabl6 > .plot-container > .svg-container > .main-svg > .table > .table-control-view > .y-column > .column-block > .column-cells > .column-cell").off("click");
+                $("#tabl6 > .plot-container > .svg-container > .main-svg > .table > .table-control-view > .y-column > .column-block > .column-cells > .column-cell").click(function (e) {
+                    if(e.target.textContent.includes(".")) {
+                        IPSpec(e.target.textContent);
+                    }
+                });
+            });
+            document.getElementById('domainspectext').innerHTML = "Domain Specifics<br />(" + todomain + ")";
+        }
+
+        function runPlot(catlist) {
+            plotObj = document.getElementById('plot');
+            Plotly.d3.json('data/new_output.json', function(err, fig) {
+                var domains = {
+                    x: [],
+                    y: [],
+                    text: [],
+                    name: 'Domain Count',
+                    type: 'bar'
+                };
+                var ips = {
+                    x: [],
+                    y: [],
+                    text: [],
+                    name: 'IP Count',
+                    type: 'bar'
+                };
+                var data = [domains, ips];
+                var totalDomains = 0;
+                var totalIPs = 0;
+                var data2 = [{
+                    type: 'table',
+                    header: {
+                        values: [
+                            ["IP"],
+                            ["Categories"]
+                        ],
+                        align: "center"
+                    },
+                    cells: {
+                        values: []
+                    }
+                }];
+                var data3 = [{
+                    type: 'table',
+                    header: {
+                        values: [
+                            ["Domain"],
+                            ["Category"]
+                        ],
+                        align: "center"
+                    },
+                    cells: {
+                        values: []
+                    }
+                }];
+                var seenIPS = {};
+                var seenDOMAINS = {};
+                var iplist = [];
+                var domainlist = [];
+                var firstPlot = 0;
+                if (catlist === undefined) {
+                    catlist = [];
+                    firstPlot = 1;
+                    for (category in fig) {
+                        catlist.push(category);
+                    }
                 }
-            }
+                for (category in fig) {
+                    if ($.inArray(category, catlist) != -1) {
+                        data[0]["x"].push(category);
+                        data[1]["x"].push(category);
+                        data[0]["y"].push(fig[category].count_domains);
+                        data[1]["y"].push(fig[category].count_IPs);
+                        totalDomains += fig[category].count_domains;
+                        totalIPs += fig[category].count_IPs;
+                        for (ip in fig[category]["IPs"]) {
+                            if (fig[category]["IPs"][ip] in seenIPS) {
+                                seenIPS[fig[category]["IPs"][ip]].push(category);
+                            } else {
+                                seenIPS[fig[category]["IPs"][ip]] = [];
+                                seenIPS[fig[category]["IPs"][ip]].push(category);
+                            }
+                            if ($.inArray(fig[category]["IPs"][ip], iplist) == -1) {
+                                iplist.push(fig[category]["IPs"][ip]);
+                            }
+                        }
+
+                        for (domain in fig[category]["domains"]) {
+                            if (fig[category]["domains"][domain] in seenDOMAINS) {
+                                seenDOMAINS[fig[category]["domains"][domain]].push(category);
+                            } else {
+                                seenDOMAINS[fig[category]["domains"][domain]] = [];
+                                seenDOMAINS[fig[category]["domains"][domain]].push(category);
+                            }
+                            if ($.inArray(fig[category]["domains"][domain], domainlist) == -1) {
+                                domainlist.push(fig[category]["domains"][domain]);
+                            }
+                        }
+                    }
+                }
+                for (category in fig) {
+                    if ($.inArray(category, catlist) != -1) {
+                        data[0]["text"].push(String((fig[category].count_domains / totalDomains * 100).toFixed(2)) + "%");
+                        data[1]["text"].push(String((fig[category].count_IPs / totalIPs * 100).toFixed(2)) + "%");
+                    }
+                }
+                iplist.sort();
+                seenIPS = sortOnKeys(seenIPS);
+                data2[0]["cells"]["values"].push(iplist);
+                data2[0]["cells"]["values"].push([]);
+                for (ip in seenIPS) {
+                    data2[0]["cells"]["values"][1].push(seenIPS[ip]);
+                }
+                data3[0]["cells"]["values"].push(domainlist);
+                data3[0]["cells"]["values"].push([]);
+                for (domain in seenDOMAINS) {
+                    data3[0]["cells"]["values"][1].push(seenDOMAINS[domain]);
+                }
+                var layout = {
+                    title: 'Distribution by Category',
+                    barmode: 'group',
+                    xaxis: {
+                        title: 'Category',
+                        type: 'category'
+                    },
+                    yaxis: {
+                        title: 'Count'
+                    }
+                };
+                if (firstPlot == 1) {
+                    DomainSpec(domainlist[0]);
+                    IPSpec(iplist[0]);
+                    $('.tabs').tabs('select', "overview");
+                    Plotly.newPlot(plotObj, data, layout, {
+                        responsive: true
+                    });
+                    Plotly.newPlot('tabl', data2, {
+                        responsive: true
+                    });
+                    Plotly.newPlot('tabl2', data3, {
+                        responsive: true
+                    });
+                } else {
+                    Plotly.react(plotObj, data, layout);
+                    Plotly.react('tabl', data2);
+                    Plotly.react('tabl2', data3);
+                }
+                document.getElementById('overviewtext').innerHTML = "Overview<br />(Cats " + catlist + ")";
+                $("#tabl > .plot-container > .svg-container > .main-svg > .table > .table-control-view > .y-column > .column-block > .column-cells > .column-cell").off("click");
+                $("#tabl > .plot-container > .svg-container > .main-svg > .table > .table-control-view > .y-column > .column-block > .column-cells > .column-cell").click(function (e) {
+                    if(e.target.textContent.includes(".")) {
+                        IPSpec(e.target.textContent);
+                    }
+                });
+                $("#tabl2 > .plot-container > .svg-container > .main-svg > .table > .table-control-view > .y-column > .column-block > .column-cells > .column-cell").off("click");
+                $("#tabl2 > .plot-container > .svg-container > .main-svg > .table > .table-control-view > .y-column > .column-block > .column-cells > .column-cell").click(function (e) {
+                    if(e.target.textContent.includes(".")) {
+                        DomainSpec(e.target.textContent);
+                    }
+                });
+            });
         }
-        for (category in fig) {
-            data[0]["text"].push(String((fig[category].count_domains / totalDomains * 100).toFixed(2)) + "%");
-            data[1]["text"].push(String((fig[category].count_IPs / totalIPs * 100).toFixed(2)) + "%");
-        }
-        iplist.sort();
-        seenIPS = sortOnKeys(seenIPS);
-        data2[0]["cells"]["values"].push(iplist);
-        data2[0]["cells"]["values"].push([]);
-        for (ip in seenIPS) {
-            data2[0]["cells"]["values"][1].push(seenIPS[ip]);
-        }
-        data3[0]["cells"]["values"].push(domainlist);
-        data3[0]["cells"]["values"].push([]);
-        for (domain in seenDOMAINS) {
-            data3[0]["cells"]["values"][1].push(seenDOMAINS[domain]);
-        }
-        var layout = {
-            title: 'Distribution by Category',
-            barmode: 'group',
-            xaxis: {
-                title: 'Category'
-            },
-            yaxis: {
-                title: 'Count'
-            }
+
+        runPlot();
+        M.AutoInit();
+
+        window.onload = function() {
+            $("input:checkbox").change(function(e) {
+                toggleCat(e.target.value);
+                runPlot(currentCategories);
+            });
+            $('.tabs').tabs('select', "overview");
         };
-        Plotly.newPlot(plotObj, data, layout);
-        Plotly.newPlot('tabl', data2);
-        Plotly.newPlot('tabl2', data3);
-    });
-  </script>
+    </script>
+
+</div>
 
 </body>
